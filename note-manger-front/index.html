@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .sections {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-family: inherit;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .get-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .notes-list {
+            margin-top: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+            background: #f9f9f9;
+        }
+
+        .note-item {
+            background: white;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .note-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .note-creator {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .note-email {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .note-date {
+            color: #999;
+            font-size: 0.85em;
+        }
+
+        .note-content {
+            color: #333;
+            line-height: 1.6;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .note-id {
+            font-size: 0.75em;
+            color: #aaa;
+            margin-top: 8px;
+            font-family: monospace;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-style: italic;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Note Manager</h1>
+        
+        <div class="sections">
+            <!-- Create Section -->
+            <div class="section">
+                <h2>Create Note</h2>
+                <div id="createMessage"></div>
+                <form id="createNoteForm">
+                    <div class="form-group">
+                        <label for="creatorName">Creator Name *</label>
+                        <input type="text" id="creatorName" name="creatorName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="creatorEmail">Creator Email *</label>
+                        <input type="email" id="creatorEmail" name="creatorEmail" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="content">Content *</label>
+                        <textarea id="content" name="content" required></textarea>
+                    </div>
+                    
+                    <button type="submit">Create Note</button>
+                </form>
+            </div>
+
+            <!-- Get Section -->
+            <div class="section get-section">
+                <h2>Get All Notes</h2>
+                <button id="getNotesBtn" onclick="getAllNotes()">Get Notes</button>
+                <div id="getMessage"></div>
+                <div id="notesList" class="notes-list" style="display: none;">
+                    <div class="empty-state">Click "Get Notes" to load notes</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080/api/notes';
+
+        // Create Note Form Handler
+        document.getElementById('createNoteForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const messageDiv = document.getElementById('createMessage');
+            const submitBtn = this.querySelector('button[type="submit"]');
+            
+            // Get form values
+            const noteData = {
+                creatorName: document.getElementById('creatorName').value.trim(),
+                creatorEmail: document.getElementById('creatorEmail').value.trim(),
+                content: document.getElementById('content').value.trim()
+            };
+
+            // Validate
+            if (!noteData.creatorName || !noteData.creatorEmail || !noteData.content) {
+                showMessage('createMessage', 'Please fill in all fields', 'error');
+                return;
+            }
+
+            // Disable button during request
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating...';
+
+            try {
+                const response = await fetch(API_BASE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(noteData)
+                });
+
+                if (response.ok) {
+                    const createdNote = await response.json();
+                    showMessage('createMessage', 'Note created successfully!', 'success');
+                    // Clear form
+                    this.reset();
+                    // Optionally refresh notes list
+                    setTimeout(() => {
+                        getAllNotes();
+                    }, 500);
+                } else {
+                    const errorData = await response.json().catch(() => ({ message: 'Failed to create note' }));
+                    showMessage('createMessage', `Error: ${errorData.message || 'Failed to create note'}`, 'error');
+                }
+            } catch (error) {
+                showMessage('createMessage', `Error: ${error.message}. Make sure the server is running on localhost:8080`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Note';
+            }
+        });
+
+        // Get All Notes
+        async function getAllNotes() {
+            const messageDiv = document.getElementById('getMessage');
+            const notesListDiv = document.getElementById('notesList');
+            const getBtn = document.getElementById('getNotesBtn');
+
+            // Show loading state
+            getBtn.disabled = true;
+            getBtn.textContent = 'Loading...';
+            messageDiv.innerHTML = '';
+            notesListDiv.style.display = 'block';
+            notesListDiv.innerHTML = '<div class="loading">Loading notes...</div>';
+
+            try {
+                const response = await fetch(API_BASE_URL, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const notes = await response.json();
+                    
+                    if (notes.length === 0) {
+                        notesListDiv.innerHTML = '<div class="empty-state">No notes found. Create your first note!</div>';
+                    } else {
+                        notesListDiv.innerHTML = notes.map(note => createNoteItem(note)).join('');
+                    }
+                    showMessage('getMessage', `Loaded ${notes.length} note(s)`, 'success');
+                } else {
+                    const errorData = await response.json().catch(() => ({ message: 'Failed to fetch notes' }));
+                    notesListDiv.innerHTML = '';
+                    showMessage('getMessage', `Error: ${errorData.message || 'Failed to fetch notes'}`, 'error');
+                }
+            } catch (error) {
+                notesListDiv.innerHTML = '';
+                showMessage('getMessage', `Error: ${error.message}. Make sure the server is running on localhost:8080`, 'error');
+            } finally {
+                getBtn.disabled = false;
+                getBtn.textContent = 'Get Notes';
+            }
+        }
+
+        // Create Note Item HTML
+        function createNoteItem(note) {
+            const date = note.created_at ? new Date(note.created_at).toLocaleString() : 'N/A';
+            return `
+                <div class="note-item">
+                    <div class="note-header">
+                        <div>
+                            <div class="note-creator">${escapeHtml(note.creatorName || 'Unknown')}</div>
+                            <div class="note-email">${escapeHtml(note.creatorEmail || 'N/A')}</div>
+                        </div>
+                        <div class="note-date">${date}</div>
+                    </div>
+                    <div class="note-content">${escapeHtml(note.content || '')}</div>
+                    ${note.id ? `<div class="note-id">ID: ${note.id}</div>` : ''}
+                </div>
+            `;
+        }
+
+        // Show Message
+        function showMessage(elementId, message, type) {
+            const messageDiv = document.getElementById(elementId);
+            messageDiv.innerHTML = `<div class="message ${type}">${escapeHtml(message)}</div>`;
+            // Auto-hide success messages after 3 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    messageDiv.innerHTML = '';
+                }, 3000);
+            }
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

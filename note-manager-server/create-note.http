@@ -1,0 +1,18 @@
+### Create Note - HTTP Request File
+### Can be used with REST Client extension in VS Code or IntelliJ
+
+POST http://localhost:8080/api/notes
+Content-Type: application/json
+
+{
+  "creatorName": "John Doe",
+  "creatorEmail": "john.doe@example.com",
+  "content": "This is my first note. It contains important information."
+}
+
+###
+
+### Get All Notes
+GET http://localhost:8080/api/notes
+
+###
