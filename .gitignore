@@ -1,0 +1,17 @@
+# Sensitive / credentials – do not commit
+admin_accessKeys.csv
+admin_credentials.csv
+admin-ec2.pem
+
+# Build
+build/
+
+# Gradle
+.gradle/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/

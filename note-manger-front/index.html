@@ -265,7 +265,7 @@
     </div>
 
     <script>
-        const API_BASE_URL = 'http://localhost:8080/api/notes';
+        const API_BASE_URL = 'https://note-api.mekh.click/api/notes';
 
         // Create Note Form Handler
         document.getElementById('createNoteForm').addEventListener('submit', async function(e) {
@@ -314,7 +314,7 @@
                     showMessage('createMessage', `Error: ${errorData.message || 'Failed to create note'}`, 'error');
                 }
             } catch (error) {
-                showMessage('createMessage', `Error: ${error.message}. Make sure the server is running on localhost:8080`, 'error');
+                showMessage('createMessage', `Error: ${error.message}. Make sure the server is running on ${API_BASE_URL}`, 'error');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Create Note';
@@ -358,7 +358,7 @@
                 }
             } catch (error) {
                 notesListDiv.innerHTML = '';
-                showMessage('getMessage', `Error: ${error.message}. Make sure the server is running on localhost:8080`, 'error');
+                showMessage('getMessage', `Error: ${error.message}. Make sure the server is running on ${API_BASE_URL}`, 'error');
             } finally {
                 getBtn.disabled = false;
                 getBtn.textContent = 'Get Notes';
