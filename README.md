@@ -24,57 +24,18 @@ cd note-manager-server && ./gradlew build
 
 ### Windows PowerShell (Recommended for Windows)
 
+> **Auth required:** All HTTP calls must include a valid **Cognito access token** in an `Authorization: Bearer <token>` header. Obtain the token by signing in via the frontend (`https://note-manager.mekh.click/`) and inspecting the network requests or browser storage.
+
 **Single Command – Create Note**
 ```powershell
-Invoke-RestMethod -Uri "http://localhost:8080/api/notes" -Method Post -ContentType "application/json" -Body '{"creatorName":"John Doe","creatorEmail":"john.doe@example.com","content":"This is my first note."}'
+$token = "<paste-access-token-here>"
+Invoke-RestMethod -Uri "http://localhost:8080/api/notes" -Method Post -ContentType "application/json" -Headers @{ Authorization = "Bearer $token" } -Body '{"creatorName":"John Doe","creatorEmail":"john.doe@example.com","content":"This is my first note."}'
 ```
 
 **Run Complete Test Script**
 ```powershell
 .\test-api.ps1
 ```
-
-**Run Simple Create Script**
-```powershell
-.\create-note.ps1
-```
-
-### Windows Command Prompt (CMD)
-
-**Single Command – Create Note**
-```cmd
-curl -X POST http://localhost:8080/api/notes -H "Content-Type: application/json" -d "{\"creatorName\":\"John Doe\",\"creatorEmail\":\"john.doe@example.com\",\"content\":\"This is my first note.\"}"
-```
-
-**Run Batch Script**
-```cmd
-create-note.bat
-```
-
-### Linux/Mac/Git Bash
-
-**Single Command – Create Note**
-```bash
-curl -X POST http://localhost:8080/api/notes -H "Content-Type: application/json" -d '{"creatorName":"John Doe","creatorEmail":"john.doe@example.com","content":"This is my first note."}'
-```
-
-**Run Shell Script**
-```bash
-chmod +x create-note.sh
-./create-note.sh
-```
-
-### VS Code / IntelliJ IDEA
-
-Open `create-note.http` and click **Send Request** (requires REST Client extension).
-
-### All Available Scripts
-
-1. **create-note.ps1** – PowerShell (Windows)
-2. **create-note.sh** – Bash (Linux/Mac)
-3. **create-note.bat** – Batch (Windows CMD)
-4. **create-note.http** – HTTP file for REST Client extensions
-5. **test-api.ps1** – Full test (create notes + list all)
 
 ### Prerequisites
 
@@ -86,10 +47,14 @@ Open `create-note.http` and click **Send Request** (requires REST Client extensi
 
 ## 3. API Request Examples
 
+This section shows how to call the Note Manager REST API with and without helper scripts. All examples assume you already have a valid **Cognito access token** and include it in an `Authorization: Bearer <access_token>` header.
+
 ### Create Note
 
 **Endpoint:** `POST http://localhost:8080/api/notes`  
-**Headers:** `Content-Type: application/json`
+**Headers:**  
+- `Content-Type: application/json`  
+- `Authorization: Bearer <access_token>`
 
 The body may include only the fields you provide. `id` and `created_at` are set by the service.
 
@@ -104,21 +69,11 @@ The body may include only the fields you provide. `id` and `created_at` are set 
 
 **cURL:**
 ```bash
+TOKEN="<paste-access-token-here>"
 curl -X POST http://localhost:8080/api/notes \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{
-    "creatorName": "John Doe",
-    "creatorEmail": "john.doe@example.com",
-    "content": "This is my first note. It contains important information."
-  }'
-```
-
-**PowerShell:**
-```powershell
-Invoke-RestMethod -Uri "http://localhost:8080/api/notes" `
-  -Method Post `
-  -ContentType "application/json" `
-  -Body '{
     "creatorName": "John Doe",
     "creatorEmail": "john.doe@example.com",
     "content": "This is my first note. It contains important information."
@@ -138,10 +93,14 @@ Invoke-RestMethod -Uri "http://localhost:8080/api/notes" `
 
 ### Get All Notes
 
-**Endpoint:** `GET http://localhost:8080/api/notes`
+**Endpoint:** `GET http://localhost:8080/api/notes`  
+**Headers:** `Authorization: Bearer <access_token>`
 
-**cURL:** `curl -X GET http://localhost:8080/api/notes`  
-**PowerShell:** `Invoke-RestMethod -Uri "http://localhost:8080/api/notes" -Method Get`
+**cURL:**
+```bash
+TOKEN="<paste-access-token-here>"
+curl -X GET http://localhost:8080/api/notes -H "Authorization: Bearer $TOKEN"
+```
 
 **Response:** `200 OK` – JSON array of note objects (same shape as above).
 
@@ -222,6 +181,10 @@ chmod 400 your-key-name.pem
 ssh -i "your-key-name.pem" username@public-ip-address
 ```
 
+```bash
+ssh -i "admin-ec2.pem" ec2-user@13.61.23.46
+```
+
 Usernames: `ec2-user` (Amazon Linux), `ubuntu` (Ubuntu).
 
 ### 5.3 Copy files from CloudShell to EC2
@@ -230,6 +193,10 @@ From the CloudShell terminal:
 
 ```bash
 scp -i "your-key-name.pem" local-file.txt username@public-ip-address:/home/username/
+```
+
+```bash
+scp -i "admin-ec2.pem" note-manager-0.0.1-SNAPSHOT.jar ec2-user@13.61.23.46:/home/ec2-user/note-manager-0.0.1-SNAPSHOT.jar
 ```
 
 Ensure port 22 is open in your EC2 Security Group for the CloudShell IP.
@@ -282,6 +249,74 @@ Find the `ExecStart=` line for the path, e.g.:
 2. **Frontend (Amplify)** – AWS Amplify hosts the app on the mekh.click domain: [https://note-manager.mekh.click](https://note-manager.mekh.click).
 3. **Load balancer & DNS** – Application Load Balancer on mekh.click; Route 53 with **mekh.click** hosted zone; ACM certificate for **\*.mekh.click** (HTTPS).
 4. **Backend (EC2)** – Spring Boot JAR runs on an EC2 instance as **myapp.service** (enabled on startup). API is reached via the load balancer: [https://note-api.mekh.click/api/notes](https://note-api.mekh.click/api/notes).
+
+### 6.1 Cognitio authentication ingeration
+#### Frontend Authentication (Implicit Grant Flow)
+Static HTML page redirects users to:
+```
+const authUrl = `https://${COGNITO.domain}/oauth2/authorize?response_type=token&client_id=${clientId}&redirect_uri=${redirectUri}&scope=openid+profile+email`;
+window.location.href = authUrl;
+```
+#### Cognito redirect user to Login page (Implicit Grant Flow)
+User enters email/ password registered in Cognito User pool
+
+#### Direct Token Receipt
+After user authentication, Cognito redirects back with tokens directly in the URL fragment
+```
+https://your-app.com/callback#access_token=eyJ...&id_token=eyJ...&token_type=Bearer&expires_in=3600
+
+```
+ Frontend Token Extraction
+ ```
+ function parseTokensFromCallback() {
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    return {
+        accessToken: params.get('access_token'),
+        idToken: params.get('id_token')
+    };
+}
+ ```
+
+#### Backend Configuration (Spring Boot)
+```
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+    
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .cors(Customizer.withDefaults())
+            .csrf(csrf -> csrf.disable())
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/**").authenticated()
+                .anyRequest().permitAll()
+            )
+            .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}));
+        return http.build();
+    }
+}
+```
+Application Properties
+```
+spring.security.oauth2.resourceserver.jwt.issuer-uri=https://cognito-idp.eu-north-1.amazonaws.com/eu-north-1_Oe4Ubp5pI
+```
+#### Automatic Backend Validation
+Spring Boot automatically:
+✅ Downloads public keys from Cognito JWKS endpoint
+✅ Validates JWT signature using RSA256
+✅ Checks token expiration (exp claim)
+✅ Verifies issuer matches configured issuer-uri
+✅ Creates Authentication object with user details
+
+
+#### Cognito AWS User Pool Configuration 
+Created User Pool -  zorltu (eu-north-1_Oe4Ubp5pI) for Note-Manager Application
+Enabled - Implicit grant flow (Application can receive token directly in cognito callback after login)
+Users: 
+maksimmekh@gmail.com
+maxcimkj93@gmail.com
 
 ---
 

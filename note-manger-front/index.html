@@ -221,10 +221,44 @@
             color: #667eea;
             padding: 20px;
         }
+
+        .login-gate {
+            text-align: center;
+            padding: 60px 30px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 420px;
+            margin: 80px auto 0;
+        }
+        .login-gate h2 {
+            color: #667eea;
+            margin-bottom: 16px;
+            font-size: 1.5em;
+        }
+        .login-gate p {
+            color: #555;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        .login-gate .message.error { margin-bottom: 20px; }
+        #appContent { display: none; }
+        #appContent.authenticated { display: block; }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Shown when user is not logged in -->
+    <div id="loginGate" class="container">
+        <div class="login-gate">
+            <h2>📝 Note Manager</h2>
+            <p>Sign in with AWS Cognito to create and view notes.</p>
+            <div id="loginGateMessage"></div>
+            <button type="button" id="signInBtn">Sign in with Cognito</button>
+        </div>
+    </div>
+
+    <!-- Shown only after successful Cognito login -->
+    <div id="appContent" class="container">
         <h1>📝 Note Manager</h1>
         
         <div class="sections">
@@ -267,6 +301,155 @@
     <script>
         const API_BASE_URL = 'https://note-api.mekh.click/api/notes';
 
+        // AWS Cognito Hosted UI – set your User Pool domain and App Client ID (no secret for public SPA).
+        // Redirect URI must be exactly the URL of this page and allowed in Cognito App Client.
+        const COGNITO = {
+            domain: 'eu-north-1oe4ubp5pi.auth.eu-north-1.amazoncognito.com',
+            clientId: 'nqo0cbveb3ehahnldphjg96mk',
+            scope: 'email openid phone',
+            responseType: 'token'
+        };
+
+        function getRedirectUri() {
+            // Must exactly match the Callback URL configured in Cognito
+            return 'https://note-manager.mekh.click/';
+        }
+
+        function getCognitoLoginUrl() {
+            const base = 'https://' + COGNITO.domain + '/oauth2/authorize';
+            const params = new URLSearchParams({
+                response_type: COGNITO.responseType,
+                client_id: COGNITO.clientId,
+                redirect_uri: getRedirectUri(),
+                scope: COGNITO.scope,
+                state: 'note-manager-' + Math.random().toString(36).slice(2)
+            });
+            return base + '?' + params.toString();
+        }
+
+        function redirectToCognito() {
+            if (COGNITO.domain.indexOf('YOUR_') !== -1 || COGNITO.clientId.indexOf('YOUR_') !== -1) {
+                var el = document.getElementById('loginGateMessage');
+                if (el) el.innerHTML = '<div class="message error">Configure COGNITO.domain and COGNITO.clientId in this file with your Cognito User Pool domain and App Client ID.</div>';
+                return;
+            }
+            window.location.href = getCognitoLoginUrl();
+        }
+
+        // Parse Cognito callback: tokens in URL fragment (#id_token=...&access_token=...)
+        // or, if an upstream proxy rewrites, in the query string (?id_token=...&access_token=...)
+        function parseCognitoCallback() {
+            let token = null;
+            let error = null;
+            let errorDescription = '';
+
+            const hash = window.location.hash ? window.location.hash.substring(1) : '';
+            if (hash) {
+                const hashParams = new URLSearchParams(hash);
+                token = hashParams.get('id_token') || hashParams.get('access_token');
+                error = hashParams.get('error');
+                errorDescription = hashParams.get('error_description') || '';
+            }
+
+            if (!token && !error && window.location.search && window.location.search.length > 1) {
+                const searchParams = new URLSearchParams(window.location.search.substring(1));
+                token = searchParams.get('id_token') || searchParams.get('access_token') || token;
+                error = searchParams.get('error') || error;
+                errorDescription = searchParams.get('error_description') || errorDescription;
+            }
+
+            if (!token && !error) {
+                return { token: null, error: null };
+            }
+            return { token, error, errorDescription };
+        }
+
+        function storeToken(token) {
+            sessionStorage.setItem('cognitoAccessToken', token);
+            window.cognitoAccessToken = token;
+        }
+
+        function clearToken() {
+            sessionStorage.removeItem('cognitoAccessToken');
+            window.cognitoAccessToken = null;
+        }
+
+        function hasStoredToken() {
+            return !!(window.cognitoAccessToken || sessionStorage.getItem('cognitoAccessToken'));
+        }
+
+        function setStoredTokenFromStorage() {
+            const t = sessionStorage.getItem('cognitoAccessToken');
+            if (t) window.cognitoAccessToken = t;
+            return !!t;
+        }
+
+        // Initialize auth on load: handle callback, redirect to Cognito if not signed in, or show app
+        function initAuth() {
+            const loginGate = document.getElementById('loginGate');
+            const appContent = document.getElementById('appContent');
+            const loginGateMessage = document.getElementById('loginGateMessage');
+            const signInBtn = document.getElementById('signInBtn');
+
+            signInBtn.addEventListener('click', redirectToCognito);
+
+            const callback = parseCognitoCallback();
+
+            if (callback.error) {
+                loginGateMessage.innerHTML = '<div class="message error">' + escapeHtml(callback.errorDescription || callback.error) + '</div>';
+                loginGate.style.display = 'block';
+                appContent.classList.remove('authenticated');
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({}, document.title, getRedirectUri());
+                }
+                return;
+            }
+
+            if (callback.token) {
+                storeToken(callback.token);
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({}, document.title, getRedirectUri());
+                }
+                loginGate.style.display = 'none';
+                appContent.classList.add('authenticated');
+                return;
+            }
+
+            if (setStoredTokenFromStorage()) {
+                // User already logged in in this browser session
+                loginGate.style.display = 'none';
+                appContent.classList.add('authenticated');
+                return;
+            }
+
+            // No token yet: just show login gate, wait for user to click "Sign in"
+            loginGate.style.display = 'block';
+            appContent.classList.remove('authenticated');
+        }
+
+        // Get Cognito token from memory or sessionStorage (used for BE requests)
+        function getCognitoToken() {
+            if (window.cognitoAccessToken) return Promise.resolve(window.cognitoAccessToken);
+            const stored = sessionStorage.getItem('cognitoAccessToken');
+            if (stored) {
+                window.cognitoAccessToken = stored;
+                return Promise.resolve(stored);
+            }
+            return Promise.reject(new Error('Not signed in. Redirecting to login.'));
+        }
+
+        // Wrapper around fetch that adds Authorization header with Cognito token
+        async function authorizedFetch(url, options = {}) {
+            const token = await getCognitoToken();
+            const headers = new Headers(options.headers || {});
+            headers.set('Authorization', `Bearer ${token}`);
+
+            return fetch(url, {
+                ...options,
+                headers
+            });
+        }
+
         // Create Note Form Handler
         document.getElementById('createNoteForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -292,7 +475,7 @@
             submitBtn.textContent = 'Creating...';
 
             try {
-                const response = await fetch(API_BASE_URL, {
+                const response = await authorizedFetch(API_BASE_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -335,7 +518,7 @@
             notesListDiv.innerHTML = '<div class="loading">Loading notes...</div>';
 
             try {
-                const response = await fetch(API_BASE_URL, {
+                const response = await authorizedFetch(API_BASE_URL, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
@@ -401,6 +584,8 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+        document.addEventListener('DOMContentLoaded', initAuth);
     </script>
 </body>
 </html>

@@ -6,6 +6,8 @@ import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
@@ -18,11 +20,13 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(NoteController.class)
+@ImportAutoConfiguration(exclude = OAuth2ResourceServerAutoConfiguration.class)
 class NoteControllerTest {
 
     @Autowired
@@ -60,6 +64,7 @@ class NoteControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/notes")
+                        .with(jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(inputNote)))
                 .andExpect(status().isCreated())
@@ -88,7 +93,7 @@ class NoteControllerTest {
         when(noteService.getAllNotes()).thenReturn(notes);
 
         // When & Then
-        mockMvc.perform(get("/api/notes"))
+        mockMvc.perform(get("/api/notes").with(jwt()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$").isArray())
@@ -108,7 +113,7 @@ class NoteControllerTest {
         when(noteService.getAllNotes()).thenReturn(new ArrayList<>());
 
         // When & Then
-        mockMvc.perform(get("/api/notes"))
+        mockMvc.perform(get("/api/notes").with(jwt()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$").isArray())
