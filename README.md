@@ -20,7 +20,22 @@ cd note-manager-server && ./gradlew build
 
 ---
 
-## 2. Quick Start – Ready to Execute Commands
+## 2. Deployment Automation
+
+You can use the `deploy.bat` script in the root directory to automate building, uploading, and restarting the service on your EC2 instance.
+
+**Prerequisites:**
+- Ensure your `.pem` file is in the root directory.
+- Edit `deploy.bat` to set the correct `EC2_USER`, `EC2_IP`, and `PEM_FILE` variables.
+
+**Run deployment:**
+```powershell
+.\deploy.bat
+```
+
+---
+
+## 3. Quick Start – Ready to Execute Commands
 
 ### Windows PowerShell (Recommended for Windows)
 
@@ -45,7 +60,7 @@ Invoke-RestMethod -Uri "http://localhost:8080/api/notes" -Method Post -ContentTy
 
 ---
 
-## 3. API Request Examples
+## 4. API Request Examples
 
 This section shows how to call the Note Manager REST API with and without helper scripts. All examples assume you already have a valid **Cognito access token** and include it in an `Authorization: Bearer <access_token>` header.
 
@@ -135,7 +150,7 @@ curl -X GET http://localhost:8080/api/notes -H "Authorization: Bearer $TOKEN"
 
 ---
 
-## 4. Getting Started & Reference
+## 5. Getting Started & Reference
 
 **Note:** The original package name `com.example.note-manager` is invalid; the project uses `com.example.note_manager`.
 
@@ -143,7 +158,7 @@ curl -X GET http://localhost:8080/api/notes -H "Authorization: Bearer $TOKEN"
 
 - [Gradle documentation](https://docs.gradle.org)
 - [Spring Boot Gradle Plugin](https://docs.spring.io/spring-boot/4.0.2/gradle-plugin)
-- [Create an OCI image](https://docs.spring.io/spring-boot/4.0.2/gradle-plugin/packaging-oci-image.html)
+- [Create an OCI image](https://spring.io/gradle-plugin/packaging-oci-image.html)
 - [Spring Web](https://docs.spring.io/spring-boot/4.0.2/reference/web/servlet.html)
 
 ### Guides
@@ -158,16 +173,16 @@ curl -X GET http://localhost:8080/api/notes -H "Authorization: Bearer $TOKEN"
 
 ---
 
-## 5. AWS EC2 & CloudShell Quick Reference
+## 6. AWS EC2 & CloudShell Quick Reference
 
-### 5.1 Upload file to AWS CloudShell
+### 6.1 Upload file to AWS CloudShell
 
 1. Open CloudShell (icon in top-right of AWS Console).
 2. Click **Actions → Upload file**.
 3. Select your file (e.g., `key.pem` or `app.jar`) and click **Upload**.
 4. The file will be in `/home/cloudshell-user/`.
 
-### 5.2 Connect to EC2 via SSH from CloudShell
+### 6.2 Connect to EC2 via SSH from CloudShell
 
 **Step A: Set key permissions (required for security)**
 
@@ -187,7 +202,7 @@ ssh -i "admin-ec2.pem" ec2-user@13.61.23.46
 
 Usernames: `ec2-user` (Amazon Linux), `ubuntu` (Ubuntu).
 
-### 5.3 Copy files from CloudShell to EC2
+### 6.3 Copy files from CloudShell to EC2
 
 From the CloudShell terminal:
 
@@ -201,7 +216,7 @@ scp -i "admin-ec2.pem" note-manager-0.0.1-SNAPSHOT.jar ec2-user@13.61.23.46:/hom
 
 Ensure port 22 is open in your EC2 Security Group for the CloudShell IP.
 
-### 5.4 Manage myapp.service on EC2
+### 6.4 Manage myapp.service on EC2
 
 After logging into the EC2 instance:
 
@@ -229,7 +244,7 @@ sudo systemctl enable myapp.service
 sudo systemctl start myapp.service
 ```
 
-### 5.5 Find the startup script for myapp.service
+### 6.5 Find the startup script for myapp.service
 
 View the service configuration:
 
@@ -243,14 +258,14 @@ Find the `ExecStart=` line for the path, e.g.:
 
 ---
 
-## 6. Current app AWS setup
+## 7. Current app AWS setup
 
 1. **Public domain** – [mekh.click](https://mekh.click) bought on [Spaceship](https://www.spaceship.com) (registrar).
 2. **Frontend (Amplify)** – AWS Amplify hosts the app on the mekh.click domain: [https://note-manager.mekh.click](https://note-manager.mekh.click).
 3. **Load balancer & DNS** – Application Load Balancer on mekh.click; Route 53 with **mekh.click** hosted zone; ACM certificate for **\*.mekh.click** (HTTPS).
 4. **Backend (EC2)** – Spring Boot JAR runs on an EC2 instance as **myapp.service** (enabled on startup). API is reached via the load balancer: [https://note-api.mekh.click/api/notes](https://note-api.mekh.click/api/notes).
 
-### 6.1 Cognitio authentication ingeration
+### 7.1 Cognitio authentication ingeration
 #### Frontend Authentication (Implicit Grant Flow)
 Static HTML page redirects users to:
 ```
@@ -302,21 +317,69 @@ Application Properties
 ```
 spring.security.oauth2.resourceserver.jwt.issuer-uri=https://cognito-idp.eu-north-1.amazonaws.com/eu-north-1_Oe4Ubp5pI
 ```
-#### Automatic Backend Validation
-Spring Boot automatically:
-✅ Downloads public keys from Cognito JWKS endpoint
-✅ Validates JWT signature using RSA256
-✅ Checks token expiration (exp claim)
-✅ Verifies issuer matches configured issuer-uri
-✅ Creates Authentication object with user details
 
+### 7.2 DynamoDb integration
 
-#### Cognito AWS User Pool Configuration 
-Created User Pool -  zorltu (eu-north-1_Oe4Ubp5pI) for Note-Manager Application
-Enabled - Implicit grant flow (Application can receive token directly in cognito callback after login)
-Users: 
-maksimmekh@gmail.com
-maxcimkj93@gmail.com
+The application uses AWS DynamoDB as the primary data store.
+
+#### Configuration
+- **`DynamoDbConfig.java`**: Configures the `DynamoDbClient` and `DynamoDbEnhancedClient` beans required for AWS SDK interaction.
+- **`application.properties`**: Defines the AWS region:
+  ```properties
+  aws.region=eu-north-1
+  ```
+
+#### Table Management & Operations
+- **`NoteRepository.java`**: Handles all database interactions.
+  - **Initialization**: Uses `@PostConstruct` to check if the `Notes` table exists. If not, it automatically creates the table with provisioned throughput (5 read/write units).
+  - **Operations**: Provides `save()` (PutItem) and `findAll()` (Scan) methods using the Enhanced Client.
+
+#### Access & Security
+The application does not store any AWS credentials (like access keys or secrets) explicitly. Instead, it relies on the **IAM Role** attached to the EC2 instance. The AWS SDK automatically uses the `DefaultCredentialsProvider`, which securely retrieves temporary credentials from the EC2 instance metadata service based on the assigned role and policies.
+
+To grant the necessary permissions, attach an IAM policy to the EC2 instance's role. This policy allows the application to:
+- **Create Tables**: Permission to create the `Notes` table if it doesn't exist.
+- **Read/Write Data**: Permission to perform CRUD operations (`PutItem`, `GetItem`, `Scan`, etc.) on the `Notes` table.
+
+**IAM Policy:**
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "DynamoDBTableCreationAndManagement",
+            "Effect": "Allow",
+            "Action": [
+                "dynamodb:CreateTable",
+                "dynamodb:DescribeTable",
+                "dynamodb:ListTables",
+                "dynamodb:DescribeLimits",
+                "dynamodb:DescribeTimeToLive"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "DynamoDBTableOperations",
+            "Effect": "Allow",
+            "Action": [
+                "dynamodb:PutItem",
+                "dynamodb:GetItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:Scan",
+                "dynamodb:Query",
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:ConditionCheckItem"
+            ],
+            "Resource": [
+                "arn:aws:dynamodb:*:*:table/Notes",
+                "arn:aws:dynamodb:*:*:table/Notes/index/*"
+            ]
+        }
+    ]
+}
+```
 
 ---
 

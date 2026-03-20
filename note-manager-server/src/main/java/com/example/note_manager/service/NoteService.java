@@ -1,28 +1,32 @@
 package com.example.note_manager.service;
 
 import com.example.note_manager.model.Note;
+import com.example.note_manager.repository.NoteRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class NoteService {
-    private static final Map<UUID, Note> noteStorage = new ConcurrentHashMap<>();
+
+    private final NoteRepository noteRepository;
+
+    @Autowired
+    public NoteService(NoteRepository noteRepository) {
+        this.noteRepository = noteRepository;
+    }
 
     public Note createNote(Note note) {
         UUID id = UUID.randomUUID();
         note.setId(id);
         note.setCreated_at(LocalDateTime.now());
-        noteStorage.put(id, note);
-        return note;
+        return noteRepository.save(note);
     }
 
     public List<Note> getAllNotes() {
-        return new ArrayList<>(noteStorage.values());
+        return noteRepository.findAll();
     }
 }
