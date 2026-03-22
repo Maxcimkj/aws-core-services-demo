@@ -1,8 +1,7 @@
 package com.example.note_manager.controller;
 
-import com.example.note_manager.model.Note;
-import com.example.note_manager.repository.NoteRepository;
-import com.example.note_manager.service.NoteService;
+import com.example.note_manager.model.DynamoDbNote;
+import com.example.note_manager.service.DynamoDbNoteService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,18 +33,18 @@ class NoteControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private NoteService noteService;
+    private DynamoDbNoteService noteService;
     
     @Autowired
     private ObjectMapper objectMapper;
 
-    private Note testNote;
+    private DynamoDbNote testNote;
     private UUID testId;
 
     @BeforeEach
     void setUp() {
         testId = UUID.randomUUID();
-        testNote = new Note();
+        testNote = new DynamoDbNote();
         testNote.setId(testId);
         testNote.setCreatorName("John Doe");
         testNote.setCreatorEmail("john.doe@example.com");
@@ -56,12 +55,12 @@ class NoteControllerTest {
     @Test
     void testCreateNote() throws Exception {
         // Given
-        Note inputNote = new Note();
+        DynamoDbNote inputNote = new DynamoDbNote();
         inputNote.setCreatorName("John Doe");
         inputNote.setCreatorEmail("john.doe@example.com");
         inputNote.setContent("Test note content");
 
-        when(noteService.createNote(any(Note.class))).thenReturn(testNote);
+        when(noteService.createNote(any(DynamoDbNote.class))).thenReturn(testNote);
 
         // When & Then
         mockMvc.perform(post("/api/notes")
@@ -80,10 +79,10 @@ class NoteControllerTest {
     @Test
     void testGetAllNotes() throws Exception {
         // Given
-        List<Note> notes = new ArrayList<>();
+        List<DynamoDbNote> notes = new ArrayList<>();
         notes.add(testNote);
 
-        Note anotherNote = new Note();
+        DynamoDbNote anotherNote = new DynamoDbNote();
         anotherNote.setId(UUID.randomUUID());
         anotherNote.setCreatorName("Jane Smith");
         anotherNote.setCreatorEmail("jane.smith@example.com");

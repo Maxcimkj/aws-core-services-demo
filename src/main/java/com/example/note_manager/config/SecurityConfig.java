@@ -30,7 +30,7 @@ public class SecurityConfig {
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> {
-                            // configuration via application.properties issuer-uri
+                            // configuration via application.yml issuer-uri
                         })
                 );
 

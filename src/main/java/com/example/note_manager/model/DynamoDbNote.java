@@ -13,7 +13,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @DynamoDbBean
-public class Note {
+public class DynamoDbNote {
     private UUID id;
     private String creatorName;
     private String creatorEmail;

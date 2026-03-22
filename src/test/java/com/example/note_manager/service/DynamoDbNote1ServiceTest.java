@@ -1,7 +1,7 @@
 package com.example.note_manager.service;
 
-import com.example.note_manager.model.Note;
-import com.example.note_manager.repository.NoteRepository;
+import com.example.note_manager.model.DynamoDbNote;
+import com.example.note_manager.repository.DynamoDbNoteRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -18,26 +18,26 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class NoteServiceTest {
+public class DynamoDbNote1ServiceTest {
 
     @Mock
-    private NoteRepository noteRepository;
+    private DynamoDbNoteRepository noteRepository;
 
     @InjectMocks
-    private NoteService noteService;
+    private DynamoDbNoteService noteService;
 
     @Test
     void testCreateNote_SetsIdAndCreatedAt() {
         // Given
-        Note inputNote = new Note();
+        DynamoDbNote inputNote = new DynamoDbNote();
         inputNote.setCreatorName("John Doe");
         inputNote.setCreatorEmail("john.doe@example.com");
         inputNote.setContent("Test note content");
         
-        when(noteRepository.save(any(Note.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(noteRepository.save(any(DynamoDbNote.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        Note createdNote = noteService.createNote(inputNote);
+        DynamoDbNote createdNote = noteService.createNote(inputNote);
 
         // Then
         assertNotNull(createdNote.getId(), "Note ID should be set");
@@ -51,16 +51,16 @@ class NoteServiceTest {
     @Test
     void testCreateNote_SetsCreatedAtTimestamp() {
         // Given
-        Note inputNote = new Note();
+        DynamoDbNote inputNote = new DynamoDbNote();
         inputNote.setCreatorName("Test User");
         inputNote.setCreatorEmail("test@example.com");
         inputNote.setContent("Test content");
         
-        when(noteRepository.save(any(Note.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(noteRepository.save(any(DynamoDbNote.class))).thenAnswer(invocation -> invocation.getArgument(0));
         LocalDateTime beforeCreation = LocalDateTime.now();
 
         // When
-        Note createdNote = noteService.createNote(inputNote);
+        DynamoDbNote createdNote = noteService.createNote(inputNote);
         
         LocalDateTime afterCreation = LocalDateTime.now();
 
@@ -79,7 +79,7 @@ class NoteServiceTest {
         when(noteRepository.findAll()).thenReturn(Collections.emptyList());
 
         // When
-        List<Note> notes = noteService.getAllNotes();
+        List<DynamoDbNote> notes = noteService.getAllNotes();
 
         // Then
         assertNotNull(notes, "Should return a non-null list");
@@ -89,16 +89,16 @@ class NoteServiceTest {
     @Test
     void testGetAllNotes_ReturnsAllStoredNotes() {
         // Given
-        Note note1 = new Note();
+        DynamoDbNote note1 = new DynamoDbNote();
         note1.setContent("First note");
-        Note note2 = new Note();
+        DynamoDbNote note2 = new DynamoDbNote();
         note2.setContent("Second note");
         
-        List<Note> expectedNotes = Arrays.asList(note1, note2);
+        List<DynamoDbNote> expectedNotes = Arrays.asList(note1, note2);
         when(noteRepository.findAll()).thenReturn(expectedNotes);
 
         // When
-        List<Note> notes = noteService.getAllNotes();
+        List<DynamoDbNote> notes = noteService.getAllNotes();
 
         // Then
         assertEquals(2, notes.size(), "Should return all notes");
@@ -109,13 +109,13 @@ class NoteServiceTest {
     @Test
     void testCreateNote_ReturnsSavedNoteInstance() {
         // Given
-        Note inputNote = new Note();
+        DynamoDbNote inputNote = new DynamoDbNote();
         inputNote.setContent("Test content");
         
-        when(noteRepository.save(any(Note.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(noteRepository.save(any(DynamoDbNote.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        Note createdNote = noteService.createNote(inputNote);
+        DynamoDbNote createdNote = noteService.createNote(inputNote);
 
         // Then
         assertSame(inputNote, createdNote, "Should return the same note instance that was passed in");

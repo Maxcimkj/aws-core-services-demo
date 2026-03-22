@@ -1,6 +1,6 @@
 package com.example.note_manager.repository;
 
-import com.example.note_manager.model.Note;
+import com.example.note_manager.model.DynamoDbNote;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,15 +18,15 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Repository
-public class NoteRepository {
+public class DynamoDbNoteRepository {
 
-    private static final Logger logger = LoggerFactory.getLogger(NoteRepository.class);
-    private final DynamoDbTable<Note> noteTable;
+    private static final Logger logger = LoggerFactory.getLogger(DynamoDbNoteRepository.class);
+    private final DynamoDbTable<DynamoDbNote> noteTable;
     private final DynamoDbClient dynamoDbClient;
 
     @Autowired
-    public NoteRepository(DynamoDbEnhancedClient enhancedClient, DynamoDbClient dynamoDbClient) {
-        this.noteTable = enhancedClient.table("Notes", TableSchema.fromBean(Note.class));
+    public DynamoDbNoteRepository(DynamoDbEnhancedClient enhancedClient, DynamoDbClient dynamoDbClient) {
+        this.noteTable = enhancedClient.table("Notes", TableSchema.fromBean(DynamoDbNote.class));
         this.dynamoDbClient = dynamoDbClient;
     }
 
@@ -46,12 +46,12 @@ public class NoteRepository {
         }
     }
 
-    public Note save(Note note) {
+    public DynamoDbNote save(DynamoDbNote note) {
         noteTable.putItem(note);
         return note;
     }
 
-    public List<Note> findAll() {
+    public List<DynamoDbNote> findAll() {
         return noteTable.scan()
                 .items()
                 .stream()

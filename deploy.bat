@@ -6,19 +6,17 @@ setlocal
 set EC2_USER=ec2-user
 set EC2_IP=13.61.23.46
 set PEM_FILE=admin-ec2.pem
-set JAR_PATH=note-manager-server\build\libs\note-manager-0.0.1-SNAPSHOT.jar
+set JAR_PATH=build\libs\note-manager-0.0.1-SNAPSHOT.jar
 set REMOTE_DEST=/home/%EC2_USER%/note-manager-0.0.1-SNAPSHOT.jar
 set SERVICE_FILE=myapp.service
 set REMOTE_SERVICE_DEST=/home/%EC2_USER%/myapp.service
 
 echo [1/4] Building project...
-cd note-manager-server
-call gradlew clean build -x test
+call gradlew clean build -x test --configuration-cache
 if %errorlevel% neq 0 (
     echo Build failed!
     exit /b %errorlevel%
 )
-cd ..
 
 echo [2/4] Copying files to EC2...
 scp -i "%PEM_FILE%" "%JAR_PATH%" %EC2_USER%@%EC2_IP%:%REMOTE_DEST%
