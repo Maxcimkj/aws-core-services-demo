@@ -1,7 +1,7 @@
 package com.example.note_manager.controller;
 
-import com.example.note_manager.model.DynamoDbNote;
-import com.example.note_manager.service.DynamoDbNoteService;
+import com.example.note_manager.model.PostgresDbNote;
+import com.example.note_manager.service.PostgresDbNoteService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,34 +33,34 @@ class NoteControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private DynamoDbNoteService noteService;
+    private PostgresDbNoteService noteService;
     
     @Autowired
     private ObjectMapper objectMapper;
 
-    private DynamoDbNote testNote;
+    private PostgresDbNote testNote;
     private UUID testId;
 
     @BeforeEach
     void setUp() {
         testId = UUID.randomUUID();
-        testNote = new DynamoDbNote();
+        testNote = new PostgresDbNote();
         testNote.setId(testId);
         testNote.setCreatorName("John Doe");
         testNote.setCreatorEmail("john.doe@example.com");
         testNote.setContent("Test note content");
-        testNote.setCreated_at(LocalDateTime.now());
+        testNote.setCreatedAt(LocalDateTime.now());
     }
 
     @Test
     void testCreateNote() throws Exception {
         // Given
-        DynamoDbNote inputNote = new DynamoDbNote();
+        PostgresDbNote inputNote = new PostgresDbNote();
         inputNote.setCreatorName("John Doe");
         inputNote.setCreatorEmail("john.doe@example.com");
         inputNote.setContent("Test note content");
 
-        when(noteService.createNote(any(DynamoDbNote.class))).thenReturn(testNote);
+        when(noteService.createNote(any(PostgresDbNote.class))).thenReturn(testNote);
 
         // When & Then
         mockMvc.perform(post("/api/notes")
@@ -73,21 +73,21 @@ class NoteControllerTest {
                 .andExpect(jsonPath("$.creatorName").value("John Doe"))
                 .andExpect(jsonPath("$.creatorEmail").value("john.doe@example.com"))
                 .andExpect(jsonPath("$.content").value("Test note content"))
-                .andExpect(jsonPath("$.created_at").exists());
+                .andExpect(jsonPath("$.createdAt").exists());
     }
 
     @Test
     void testGetAllNotes() throws Exception {
         // Given
-        List<DynamoDbNote> notes = new ArrayList<>();
+        List<PostgresDbNote> notes = new ArrayList<>();
         notes.add(testNote);
 
-        DynamoDbNote anotherNote = new DynamoDbNote();
+        PostgresDbNote anotherNote = new PostgresDbNote();
         anotherNote.setId(UUID.randomUUID());
         anotherNote.setCreatorName("Jane Smith");
         anotherNote.setCreatorEmail("jane.smith@example.com");
         anotherNote.setContent("Another test note");
-        anotherNote.setCreated_at(LocalDateTime.now());
+        anotherNote.setCreatedAt(LocalDateTime.now());
         notes.add(anotherNote);
 
         when(noteService.getAllNotes()).thenReturn(notes);

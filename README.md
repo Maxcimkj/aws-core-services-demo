@@ -381,6 +381,19 @@ To grant the necessary permissions, attach an IAM policy to the EC2 instance's r
 }
 ```
 
+### 7.3 Postgres Integration
+
+The application supports PostgreSQL as a data store, hosted on AWS RDS.
+
+- **Connection**: Uses standard JDBC connectivity with username and password authentication configured in `application.yml`.
+- **Implementation**: Data access is implemented via Spring Data JPA. The application has permissions to create and update tables automatically.
+- **Network Security**: To allow connectivity, configure the **Security Groups** for both the EC2 instance and the RDS instance:
+    - **RDS Security Group**: Add an **Inbound Rule** allowing TCP traffic on port 5432 from the Security Group ID of the EC2 instance.
+    - **EC2 Security Group**: Ensure **Outbound Rules** allow traffic to the RDS instance on port 5432.
+- **Source Code**:
+    - Repository: [`PostgresDbNoteRepository.java`](src/main/java/com/example/note_manager/repository/PostgresDbNoteRepository.java)
+    - Service: [`PostgresDbNoteService.java`](src/main/java/com/example/note_manager/service/PostgresDbNoteService.java)
+
 ---
 
 *License: see `LICENSE` in the project root.*

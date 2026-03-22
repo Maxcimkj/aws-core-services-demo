@@ -3,6 +3,18 @@ spring:
     allow-bean-definition-overriding: true
   application:
     name: note-manager
+  datasource:
+    url: jdbc:postgresql://note-manager-database.cjm4c0ckadut.eu-north-1.rds.amazonaws.com:5432/postgres?sslmode=require
+    username: postgres
+    password: 1PS3fZs5inUsOEznXEz7
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   security:
     oauth2:
       resourceserver:
