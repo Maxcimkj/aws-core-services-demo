@@ -34,6 +34,7 @@ dependencies {
 	implementation platform('software.amazon.awssdk:bom:2.21.29')
 	implementation 'software.amazon.awssdk:dynamodb-enhanced'
 	implementation 'software.amazon.awssdk:dynamodb'
+	implementation 'software.amazon.awssdk:secretsmanager'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'

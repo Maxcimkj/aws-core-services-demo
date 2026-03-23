@@ -18,7 +18,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class DynamoDbNote1ServiceTest {
+public class DynamoDbNoteServiceTest {
 
     @Mock
     private DynamoDbNoteRepository noteRepository;

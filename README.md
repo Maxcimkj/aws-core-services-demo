@@ -394,6 +394,99 @@ The application supports PostgreSQL as a data store, hosted on AWS RDS.
     - Repository: [`PostgresDbNoteRepository.java`](src/main/java/com/example/note_manager/repository/PostgresDbNoteRepository.java)
     - Service: [`PostgresDbNoteService.java`](src/main/java/com/example/note_manager/service/PostgresDbNoteService.java)
 
+### 7.4 AWS Secrets Manager Integration
+
+The application uses AWS Secrets Manager to securely retrieve RDS PostgreSQL credentials instead of storing them in application configuration files.
+
+#### 7.4.1 AWS Secrets Manager Configuration
+
+1. **Secret Structure**: 
+   - Create a secret in AWS Secrets Manager containing a JSON object with all fields expected by the `RdsCredentials` class:
+     ```json
+     {
+       "host": "your-rds-endpoint",
+       "port": 5432,
+       "dbname": "your-database-name",
+       "username": "your-database-username",
+       "password": "your-database-password"
+     }
+     ```
+
+2. **IAM Policy for EC2 Instance**:
+   - Attach an IAM policy to the EC2 instance role that allows reading secrets from Secrets Manager:
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": [
+           "secretsmanager:DescribeSecret",
+           "secretsmanager:GetSecretValue",
+           "secretsmanager:ListSecretVersionIds"
+         ],
+         "Resource": "*"
+       },
+       {
+         "Effect": "Allow",
+         "Action": [
+           "kms:Decrypt"
+         ],
+         "Resource": "*",
+         "Condition": {
+           "StringEquals": {
+             "kms:ViaService": [
+               "secretsmanager.*.amazonaws.com"
+             ]
+           }
+         }
+       }
+     ]
+   }
+   ```
+   - This policy grants the EC2 instance permission to retrieve secret values and decrypt them using KMS if the secret is encrypted.
+
+3. **Configuration**:
+   - The secret identifier (ARN or name) is configured in `application.yml` under a property such as `aws.secrets.secretId`.
+   - Actual database credentials (host, port, username, password) are never stored in `application.yml` or any other configuration file within the codebase.
+   - Credentials are fetched at runtime from AWS Secrets Manager using the secret identifier.
+
+#### 7.4.2 Implementation Components
+
+The Secrets Manager integration involves three main components:
+
+1. **`RdsCredentials`**:
+   - A model class that maps to the JSON structure stored in AWS Secrets Manager.
+   - Contains fields: `host`, `port`, `dbname`, `username`, `password`.
+   - Used to deserialize the secret value retrieved from AWS Secrets Manager.
+
+2. **`RdsSecretsService`**:
+   - A Spring `@Service` component that handles communication with AWS Secrets Manager.
+   - Reads the secret identifier (ARN or name) from `application.yml` (e.g., `aws.secrets.secretId`).
+   - Uses the AWS SDK for Java (SecretsManagerClient) to fetch the secret value using the secret identifier.
+   - Parses the JSON response into an `RdsCredentials` object.
+   - Caches the credentials to avoid repeated API calls (implementation may vary).
+   - Logs the retrieval process for monitoring and debugging.
+
+3. **`RdsDataSourceConfig`**:
+   - A Spring `@Configuration` class that creates the DataSource bean for database connections.
+   - Injects `RdsSecretsService` to obtain database credentials at runtime.
+   - Uses the retrieved credentials to configure and return a `DataSource` bean (typically HikariCP connection pool).
+   - Ensures the application can establish database connections using the securely fetched credentials.
+
+**Important**: While the secret identifier (e.g., `arn:aws:secretsmanager:region:account:secret:name`) is stored in `application.yml`, the actual database credentials (host, port, username, password) are never stored in configuration files. They are always fetched at runtime from AWS Secrets Manager.
+
+#### 7.4.3 Interaction Flow
+
+1. At application startup, Spring initializes the `RdsSecretsService` bean.
+2. `RdsSecretsService` uses AWS SDK to call Secrets Manager API and retrieve the secret value.
+3. The secret JSON is deserialized into an `RdsCredentials` object.
+4. `RdsDataSourceConfig` injects `RdsSecretsService` and calls it to get `RdsCredentials`.
+5. Using these credentials, `RdsDataSourceConfig` builds and returns a configured `DataSource` bean.
+6. The `DataSource` is used by Spring Data JPA (`PostgresDbNoteRepository`) to establish database connections.
+
+This approach ensures that database credentials remain secure, are centrally managed in AWS Secrets Manager, and can be rotated without modifying the application code.
+
 ---
 
 *License: see `LICENSE` in the project root.*
