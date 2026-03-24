@@ -12,6 +12,8 @@ spring:
     active: test
 aws:
   region: eu-north-1
+  sqs:
+    queue-url: https://sqs.eu-north-1.amazonaws.com/123456789012/test-queue
   secrets:
     postgres:
       secret-id: note-manager-database-secrets

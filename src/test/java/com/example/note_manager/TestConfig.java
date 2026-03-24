@@ -2,6 +2,7 @@ package com.example.note_manager;
 
 import com.example.note_manager.config.RdsCredentials;
 import com.example.note_manager.service.RdsSecretsService;
+import com.example.note_manager.service.SqsService;
 import org.mockito.Mockito;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,6 +10,12 @@ import org.springframework.context.annotation.Primary;
 
 @Configuration
 public class TestConfig {
+
+    @Bean
+    @Primary
+    public SqsService sqsService() {
+        return Mockito.mock(SqsService.class);
+    }
 
     @Bean
     @Primary

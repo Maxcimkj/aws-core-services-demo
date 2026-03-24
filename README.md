@@ -487,6 +487,32 @@ The Secrets Manager integration involves three main components:
 
 This approach ensures that database credentials remain secure, are centrally managed in AWS Secrets Manager, and can be rotated without modifying the application code.
 
+### 7.5 SQS Integration
+
+The application integrates with Amazon Simple Queue Service (SQS) to publish notifications whenever a new note is created, regardless of whether it is stored in PostgreSQL or DynamoDB.
+
+#### 7.5.1 Configuration
+- **Queue URL**: Defined in `application.yml` under `aws.sqs.queue-url`.
+- **SQS Client**: Configured in `SqsConfig.java` using the `DefaultCredentialsProvider` (IAM Role).
+
+#### 7.5.2 Implementation
+- **`SqsService`**: A wrapper service that uses `SqsClient` and `ObjectMapper` to serialize note objects into JSON and send them to the configured queue.
+- **Service Orchestration**: Both `PostgresDbNoteService` and `DynamoDbNoteService` inject `SqsService` and trigger `sendNoteNotification()` immediately after a successful database save.
+
+#### 7.5.3 IAM Permissions
+The`sqs:SendMessage` queue permission for EC2 IAM role:
+```json
+ {
+  "Sid": "__sender_statement",
+  "Effect": "Allow",
+  "Principal": {
+    "AWS": "arn:aws:iam::845573459200:role/EC2_Spring_boot_access"
+  },
+  "Action": "SQS:SendMessage",
+  "Resource": "arn:aws:sqs:eu-north-1:845573459200:notes-queue"
+}
+```
+
 ---
 
 *License: see `LICENSE` in the project root.*

@@ -11,15 +11,19 @@ import java.util.List;
 public class PostgresDbNoteService {
 
     private final PostgresDbNoteRepository noteRepository;
+    private final SqsService sqsService;
 
     @Autowired
-    public PostgresDbNoteService(PostgresDbNoteRepository noteRepository) {
+    public PostgresDbNoteService(PostgresDbNoteRepository noteRepository, SqsService sqsService) {
         this.noteRepository = noteRepository;
+        this.sqsService = sqsService;
     }
 
     public PostgresDbNote createNote(PostgresDbNote note) {
         note.setCreatedAt(LocalDateTime.now());
-        return noteRepository.save(note);
+        PostgresDbNote savedNote = noteRepository.save(note);
+        sqsService.sendNoteNotification(savedNote);
+        return savedNote;
     }
 
     public List<PostgresDbNote> getAllNotes() {

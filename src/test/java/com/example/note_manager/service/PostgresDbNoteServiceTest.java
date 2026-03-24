@@ -23,6 +23,9 @@ class PostgresDbNoteServiceTest {
     @Mock
     private PostgresDbNoteRepository noteRepository;
 
+    @Mock
+    private SqsService sqsService;
+
     @InjectMocks
     private PostgresDbNoteService noteService;
 
@@ -49,6 +52,7 @@ class PostgresDbNoteServiceTest {
         assertThat(created).isNotNull();
         assertThat(created.getCreatorName()).isEqualTo("Tester");
         verify(noteRepository, times(1)).save(any(PostgresDbNote.class));
+        verify(sqsService, times(1)).sendNoteNotification(created);
     }
 
     @Test

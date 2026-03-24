@@ -17,6 +17,8 @@ spring:
           issuer-uri: https://cognito-idp.eu-north-1.amazonaws.com/eu-north-1_Oe4Ubp5pI
 aws:
   region: eu-north-1
+  sqs:
+    queue-url: https://sqs.eu-north-1.amazonaws.com/845573459200/notes-queue
   secrets:
     postgres:
       secret-id: note-manager-database-secrets

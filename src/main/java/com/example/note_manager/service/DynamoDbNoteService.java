@@ -13,17 +13,21 @@ import java.util.UUID;
 public class DynamoDbNoteService {
 
     private final DynamoDbNoteRepository noteRepository;
+    private final SqsService sqsService;
 
     @Autowired
-    public DynamoDbNoteService(DynamoDbNoteRepository noteRepository) {
+    public DynamoDbNoteService(DynamoDbNoteRepository noteRepository, SqsService sqsService) {
         this.noteRepository = noteRepository;
+        this.sqsService = sqsService;
     }
 
     public DynamoDbNote createNote(DynamoDbNote note) {
         UUID id = UUID.randomUUID();
         note.setId(id);
         note.setCreated_at(LocalDateTime.now());
-        return noteRepository.save(note);
+        DynamoDbNote savedNote = noteRepository.save(note);
+        sqsService.sendNoteNotification(savedNote);
+        return savedNote;
     }
 
     public List<DynamoDbNote> getAllNotes() {

@@ -23,6 +23,9 @@ public class DynamoDbNoteServiceTest {
     @Mock
     private DynamoDbNoteRepository noteRepository;
 
+    @Mock
+    private SqsService sqsService;
+
     @InjectMocks
     private DynamoDbNoteService noteService;
 
@@ -46,6 +49,7 @@ public class DynamoDbNoteServiceTest {
         assertEquals("john.doe@example.com", createdNote.getCreatorEmail());
         assertEquals("Test note content", createdNote.getContent());
         verify(noteRepository).save(inputNote);
+        verify(sqsService).sendNoteNotification(createdNote);
     }
 
     @Test
@@ -120,5 +124,6 @@ public class DynamoDbNoteServiceTest {
         // Then
         assertSame(inputNote, createdNote, "Should return the same note instance that was passed in");
         assertNotNull(createdNote.getId(), "Returned note should have ID set");
+        verify(sqsService).sendNoteNotification(createdNote);
     }
 }
