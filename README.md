@@ -513,6 +513,55 @@ The`sqs:SendMessage` queue permission for EC2 IAM role:
 }
 ```
 
+### 7.6 SQS → Lambda → SES Email Solution
+
+#### 1. Architecture Schema
+Note Application → SQS Queue → Lambda Function → SES → Email Delivery
+                    (trigger)     (process)    (send)
+
+Flow: Application sends note data to SQS → SQS triggers Lambda → Lambda extracts email/content → SES sends email to creator
+
+#### 2. SES Setup (mekh.click)
+- **Domain verification**: Verify mekh.click domain in SES Console
+- **DNS records**: Add required TXT/CNAME records to domain DNS
+- **Sender address**: Configure noreply@mekh.click as verified sender
+- **Sandbox**: Move out of SES sandbox for production use
+
+#### 3. Lambda IAM Permissions
+Attach these policies to Lambda execution role:
+- **AWSLambdaBasicExecutionRole** (AWS managed)
+- **AmazonSESFullAccess** (AWS managed)
+- **Custom SQS policy**:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": [
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes"
+    ],
+    "Resource": "arn:aws:sqs:region:account:queue-name"
+  }]
+}
+```
+
+#### 4. Lambda SQS Trigger Setup
+1. Go to **Lambda Console** → Your function
+2. **Add trigger** → Select **SQS**
+3. **SQS queue**: Select your note queue
+4. **Batch size**: 10 (default)
+5. **Enable trigger**: ✓
+6. **Save**
+
+**Result**: Lambda automatically processes SQS messages and sends personalized emails via SES.
+
+#### 5. Lambda email sender python script 
+A Python-based Lambda function that parses SQS message events, extracts note content and creator email, and utilizes AWS SES to send automated notifications.
+[email-sender-lambda.py](email-sender-lambda/email-sender-lambda.py)
+
+
 ---
 
 *License: see `LICENSE` in the project root.*
