@@ -22,14 +22,15 @@ cd note-manager-server && ./gradlew build
 
 ## 2. Deployment Automation
 
-You can use the `deploy.bat` script in the root directory to automate building, uploading, and restarting the service on your EC2 instance.
+You can use the `deploy.bat` script in the `server-deploy` directory to automate building, uploading, and restarting the service on your EC2 instance.
 
 **Prerequisites:**
 - Ensure your `.pem` file is in the root directory.
-- Edit `deploy.bat` to set the correct `EC2_USER`, `EC2_IP`, and `PEM_FILE` variables.
+- Edit `server-deploy/deploy.bat` to set the correct `EC2_USER`, `EC2_IP`, and `PEM_FILE` variables.
 
 **Run deployment:**
 ```powershell
+cd server-deploy
 .\deploy.bat
 ```
 
@@ -561,6 +562,54 @@ Attach these policies to Lambda execution role:
 A Python-based Lambda function that parses SQS message events, extracts note content and creator email, and utilizes AWS SES to send automated notifications.
 [email-sender-lambda.py](email-sender-lambda/email-sender-lambda.py)
 
+### 7.7 CloudWatch Agent Integration
+
+The CloudWatch agent collects Spring Boot application logs from EC2 instances for centralized monitoring.
+
+#### 7.7.1 General Description
+The agent performs the following:
+- Reading log files directly from the filesystem (e.g., `/var/log/myapp.log`)
+- Streaming log data to CloudWatch Logs in near real-time
+- Creating log groups and streams in CloudWatch for centralized monitoring
+- Using a JSON configuration file to specify which log files to collect
+
+#### 7.7.2 Checking CloudWatch Agent Status and Configuration
+**Check agent status:**
+```bash
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a status
+```
+
+**View current JSON configuration:**
+```bash
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -c default -a query
+```
+
+**Check agent logs for troubleshooting:**
+```bash
+tail -f /opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log
+```
+
+**Sample JSON configuration for `/var/log/myapp.log`:**
+```json
+{
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/myapp.log",
+            "log_group_name": "/aws/ec2/springboot/myapp",
+            "log_stream_name": "{instance_id}",
+            "timezone": "UTC"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+The agent continuously monitors `/var/log/myapp.log` and forwards new log entries to the specified CloudWatch log group, enabling centralized log analysis and alerting.
 
 ---
 
